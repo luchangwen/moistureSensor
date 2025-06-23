@@ -6,9 +6,9 @@ import schedule
 import time
 
 # ===== Email Configuration =====
-FROM_EMAIL = "1241428411@qq.com"
-FROM_PASSWORD = "qpxzanjnrhwejejh"  # QQ Mail app password
-TO_EMAIL = "2722458837@qq.com"
+FROM_EMAIL = "2919899795@qq.com"
+FROM_PASSWORD = "wtlyawtekjfqdchj"  # QQ Mail app password
+TO_EMAIL = "3909820640@qq.com"
 SMTP_SERVER = "smtp.qq.com"
 SMTP_PORT = 587
 
