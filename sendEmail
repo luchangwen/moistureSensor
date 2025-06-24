@@ -3,7 +3,7 @@ from email.message import EmailMessage
 
 # Set the sender email and password and recipient email
 from_email_addr = "2919899795@qq.com"
-from_email_pass = "wtlyawtekjfqdchj"
+from_email_pass = "jjufkjldhqxjddci"
 to_email_addr = "3909820640@qq.com"
 
 # Create a message object
