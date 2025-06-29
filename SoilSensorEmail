@@ -1,9 +1,8 @@
+import RPi.GPIO as GPIO
+import time
 import smtplib
 from email.message import EmailMessage
-from gpiozero import Button
 from datetime import datetime
-import schedule
-import time
 
 # ===== Email Configuration =====
 FROM_EMAIL = "2919899795@qq.com"
@@ -12,73 +11,67 @@ TO_EMAIL = "3909820640@qq.com"
 SMTP_SERVER = "smtp.qq.com"
 SMTP_PORT = 587
 
-# ===== Moisture Sensor Configuration =====
-MOISTURE_PIN = 17
-sensor = Button(MOISTURE_PIN, pull_up=True, bounce_time=0.2)
+# GPIO SETUP
+channel = 4
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(channel, GPIO.IN)
 
-# ===== Water Status (updated in real-time) =====
-# True = Dry (no water detected): watering needed
-# False = Wet (water detected): no watering needed
-water_needed = not sensor.is_pressed  # Initial status on startup
+# Time settings (using 24-hour format)
+start_hour = 8 # First check at 8:00 AM
+check_interval = 4 # Check every 4 hours
+last_checked_hour = start_hour - check_interval # Initialize to ensure first check
 
-# Callback when water is detected (button pressed)
-def on_water_detected():
-    global water_needed
-    water_needed = False
-    # print("Water detected: Plant does NOT need watering.")
-
-# Callback when no water is detected (button released)
-def on_no_water():
-    global water_needed
-    water_needed = True
-    # print("No water detected: Plant NEEDS watering.")
-
-# Attach sensor callbacks
-sensor.when_pressed = on_water_detected
-sensor.when_released = on_no_water
-
-# ===== Email Sending Function =====
-def send_email():
-    now = datetime.now()
-    status = "Plant NEEDS watering" if water_needed else "Plant does NOT need watering"
-    timestamp = now.strftime('%Y-%m-%d %H:%M:%S')
-
-    body = f"""Plant Status Report
-    
-	Timestamp: {timestamp}
-	Current Condition: {status}
-	"""
-
+def send_email(water_status):
+    """Send email notification"""
     msg = EmailMessage()
+    body = f"Plant status update at {datetime.now().strftime('%H:%M')}:\n{water_status}"
     msg.set_content(body)
-    msg['From'] = FROM_EMAIL
-    msg['To'] = TO_EMAIL
-    msg['Subject'] = f"[Plant Daily] {status} - {now.strftime('%H:%M')}"
 
-    server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+    msg['From'] = from_email_addr
+    msg['To'] = to_email_addr
+    msg['Subject'] = f'Plant Watering Alert: {water_status.split(" ")[0]}'
+
     try:
+        server = smtplib.SMTP('smtp.qq.com', 587)
         server.starttls()
-        server.login(FROM_EMAIL, FROM_PASSWORD)
+        server.login(from_email_addr, from_email_pass)
         server.send_message(msg)
-        print(f"[{timestamp}] Email sent successfully: {status}")
-    except Exception as e:
-        print(f"[{timestamp}] Error during email send: {e}")
-    finally:
+        print ('Email sent successfully')
         server.quit()
+    except Exception as e:
+        print (f"Failed to send email: {e}")
 
+def check_soil_moisture():
+    """Check soil moisture level"""
+    moisture = GPIO.input(channel)
+    return "Water NOT needed" if moisture else "Please water your plant"
 
-# ===== Schedule Email Times =====
-send_times = ["07:00", "10:00", "13:00", "16:00"]
-for t in send_times:
-    schedule.every().day.at(t).do(send_email)
-    print(f"Scheduled email at {t} every day.")
-
-# ===== Main Loop =====
-print("Plant Moisture Monitoring System is running...")
+print ("Plant monitoring system started...")
+print (f"Initial check at {start_hour}:00, then every {check_interval} hours")
 
 try:
     while True:
-        schedule.run_pending()
-        time.sleep(1)
+        # Get current time (adjusted for timezone if needed)
+        current_time = time.localtime()
+        current_hour = current_time.tm_hour # Use +8 here if you need timezone adjustment
+
+        # Check if it's time for a new reading
+        time_diff = current_hour - last_checked_hour
+        if time_diff >= check_interval or (current_hour < last_checked_hour and (24 - last_checked_hour + current_hour) >= check_interval):
+            status = check_soil_moisture()
+            print (f"{current_hour:02d}:00 - {status}")
+            send_email(status)
+            last_checked_hour = current_hour
+        else:
+            # Optional: print waiting status
+            if current_time.tm_min == 0: # Only print on the hour to reduce clutter
+                print (f"{current_hour:02d}:00 - Next check in {check_interval - time_diff} hours")
+
+        # Check every minute (adjust as needed)
+        time.sleep(60)
+
 except KeyboardInterrupt:
-    print("Program manually terminated.")
+    print ("\nMonitoring stopped by user")
+finally:
+    GPIO.cleanup()
+    print ("GPIO resources cleaned up")
