@@ -4,12 +4,10 @@ import smtplib
 from email.message import EmailMessage
 from datetime import datetime
 
-# ===== Email Configuration =====
-FROM_EMAIL = "2919899795@qq.com"
-FROM_PASSWORD = "uqlhnlzwpyawddda"  # QQ Mail app password
-TO_EMAIL = "3909820640@qq.com"
-SMTP_SERVER = "smtp.qq.com"
-SMTP_PORT = 587
+# Email configuration
+from_email_addr = "2919899795@qq.com"
+from_email_pass = "uqlhnlzwpyawddda"
+to_email_addr = "3909820640@qq.com"
 
 # GPIO SETUP
 channel = 4
